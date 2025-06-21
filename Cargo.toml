@@ -62,4 +62,7 @@ inherits = "release"
 opt-level = "z"
 strip = true
 
+[dev-dependencies]
+husky-rs = "0.1.5"
+
 

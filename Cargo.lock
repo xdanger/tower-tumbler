@@ -1816,6 +1816,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
+name = "husky-rs"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8595e3e777338ccc8360c4eb89924f8d7e55a5ff831d057e1c65892c220da28f"
+
+[[package]]
 name = "image"
 version = "0.25.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3215,6 +3221,7 @@ dependencies = [
  "bevy",
  "bevy_rapier2d",
  "getrandom 0.3.3",
+ "husky-rs",
  "js-sys",
  "rand 0.9.1",
  "serde",

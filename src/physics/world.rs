@@ -16,11 +16,3 @@ fn setup_physics_world(_commands: Commands) {
     // Physics world will be automatically created by Rapier
     info!("Physics world initialized");
 }
-
-fn update_gravity(
-    tilt_input: Res<crate::input::TiltInput>,
-    mut rapier_config: ResMut<RapierConfiguration>,
-) {
-    let gravity_dir = tilt_input.get_gravity_direction();
-    rapier_config.gravity = gravity_dir * 981.0; // 9.81 m/s² * 100 pixels/meter
-}
