@@ -6,6 +6,48 @@
     <title>Tower Tumbler - Physics Stacking Game</title>
     <meta name="description" content="A physics-based stacking game with device tilt controls">
     <link data-trunk rel="rust" data-bin="tower-tumbler" />
+    
+    <!-- WASM Exception Handler - Must run before WASM initialization -->
+    <script>
+        // Override the global error handler to catch Bevy control flow exceptions
+        const originalAddEventListener = window.addEventListener;
+        let bevyControlFlowHandled = false;
+        
+        window.addEventListener = function(type, listener, options) {
+            if (type === 'error') {
+                const wrappedListener = function(event) {
+                    if (event.error && event.error.message && 
+                        event.error.message.includes('Using exceptions for control flow')) {
+                        // Prevent the error from propagating
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        
+                        if (!bevyControlFlowHandled) {
+                            console.log('Bevy application started successfully (control flow exception handled)');
+                            bevyControlFlowHandled = true;
+                        }
+                        return;
+                    }
+                    // Call original listener for real errors
+                    return listener.call(this, event);
+                };
+                return originalAddEventListener.call(this, type, wrappedListener, options);
+            }
+            return originalAddEventListener.call(this, type, listener, options);
+        };
+        
+        // Also handle unhandled rejections
+        window.addEventListener('unhandledrejection', function(event) {
+            if (event.reason && event.reason.message && 
+                event.reason.message.includes('Using exceptions for control flow')) {
+                event.preventDefault();
+                if (!bevyControlFlowHandled) {
+                    console.log('Bevy application started successfully (control flow exception handled)');
+                    bevyControlFlowHandled = true;
+                }
+            }
+        });
+    </script>
     <style>
         body {
             margin: 0;
@@ -108,6 +150,138 @@
     </div>
     
     <script>
+        // Browser Console Logger - Captures all console output and sends to WebSocket
+        class ConsoleLogger {
+            constructor(wsUrl = 'ws://localhost:8765') {
+                this.wsUrl = wsUrl;
+                this.ws = null;
+                this.buffer = [];
+                this.connected = false;
+                this.reconnectInterval = 5000;
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupConsoleCapture();
+                this.setupErrorCapture();
+                this.connect();
+            }
+            
+            connect() {
+                try {
+                    this.ws = new WebSocket(this.wsUrl);
+                    
+                    this.ws.onopen = () => {
+                        this.connected = true;
+                        this.originalLog('[ConsoleLogger] Connected to log server');
+                        this.flushBuffer();
+                    };
+                    
+                    this.ws.onclose = () => {
+                        this.connected = false;
+                        this.originalLog('[ConsoleLogger] Disconnected from log server, will retry...');
+                        setTimeout(() => this.connect(), this.reconnectInterval);
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        this.originalLog('[ConsoleLogger] WebSocket error:', error);
+                    };
+                } catch (error) {
+                    this.originalLog('[ConsoleLogger] Failed to connect:', error);
+                    setTimeout(() => this.connect(), this.reconnectInterval);
+                }
+            }
+            
+            log(level, args) {
+                const timestamp = new Date().toISOString();
+                const message = {
+                    timestamp,
+                    level,
+                    args: Array.from(args).map(arg => {
+                        if (typeof arg === 'object') {
+                            try {
+                                return JSON.stringify(arg, null, 2);
+                            } catch (e) {
+                                return arg.toString();
+                            }
+                        }
+                        return String(arg);
+                    }),
+                    url: window.location.href,
+                    userAgent: navigator.userAgent
+                };
+                
+                if (this.connected && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify(message));
+                } else {
+                    this.buffer.push(message);
+                    if (this.buffer.length > 100) {
+                        this.buffer.shift();
+                    }
+                }
+            }
+            
+            flushBuffer() {
+                while (this.buffer.length > 0 && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify(this.buffer.shift()));
+                }
+            }
+            
+            setupConsoleCapture() {
+                this.originalLog = console.log;
+                this.originalInfo = console.info;
+                this.originalWarn = console.warn;
+                this.originalError = console.error;
+                this.originalDebug = console.debug;
+                
+                console.log = (...args) => {
+                    this.originalLog.apply(console, args);
+                    this.log('log', args);
+                };
+                
+                console.info = (...args) => {
+                    this.originalInfo.apply(console, args);
+                    this.log('info', args);
+                };
+                
+                console.warn = (...args) => {
+                    this.originalWarn.apply(console, args);
+                    this.log('warn', args);
+                };
+                
+                console.error = (...args) => {
+                    this.originalError.apply(console, args);
+                    this.log('error', args);
+                };
+                
+                console.debug = (...args) => {
+                    this.originalDebug.apply(console, args);
+                    this.log('debug', args);
+                };
+            }
+            
+            setupErrorCapture() {
+                window.addEventListener('error', (event) => {
+                    this.log('error', [
+                        'Global Error:',
+                        event.error ? event.error.stack || event.error.message : event.message,
+                        'at', event.filename + ':' + event.lineno + ':' + event.colno
+                    ]);
+                });
+                
+                window.addEventListener('unhandledrejection', (event) => {
+                    this.log('error', [
+                        'Unhandled Promise Rejection:',
+                        event.reason && event.reason.stack ? event.reason.stack : event.reason
+                    ]);
+                });
+            }
+        }
+        
+        // Initialize console logger
+        const consoleLogger = new ConsoleLogger();
+        
         // JS-Rust Bridge for Tower Tumbler
         class TowerTumblerBridge {
             constructor() {
@@ -153,6 +327,11 @@
                 // Error handling
                 window.addEventListener('error', (event) => {
                     console.error('Global error:', event.error);
+                });
+                
+                // Handle unhandled promise rejections
+                window.addEventListener('unhandledrejection', (event) => {
+                    console.error('Unhandled promise rejection:', event.reason);
                 });
             }
             

@@ -108,6 +108,34 @@ npm run test:e2e
 cargo bench
 ```
 
+### 调试和日志
+
+项目内置了完整的日志系统，用于开发和调试：
+
+#### 启动开发环境（带日志）
+
+```bash
+# 启动浏览器控制台日志服务器
+cd utils && ./start-log-server.sh
+
+# 启动开发服务器（在另一个终端）
+cd utils && ./start-trunk-server.sh
+
+# 访问 http://localhost:8080
+```
+
+#### 查看日志文件
+
+```bash
+# 浏览器控制台日志
+tail -f logs/browser/console-$(date +%Y-%m-%d).log
+
+# 服务器日志
+tail -f logs/server/trunk-$(date +%Y-%m-%d).log
+```
+
+更多调试工具信息请参考 [utils/README.md](utils/README.md)。
+
 ## 🛠️ 技术栈
 
 - **[Bevy](https://bevyengine.org)** 0.14 - Rust 游戏引擎

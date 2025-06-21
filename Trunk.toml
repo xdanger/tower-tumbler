@@ -1,6 +1,6 @@
 [build]
 target = "index.html"
-dist = "dist"
+dist = "dist"  
 public_url = "./"
 
 [watch]
