@@ -1,0 +1,19 @@
+[build]
+target = "index.html"
+dist = "dist"
+public_url = "./"
+
+[watch]
+ignore = [
+    "dist",
+    "target", 
+    ".git"
+]
+
+[serve]
+port = 8080
+addresses = ["0.0.0.0"]
+open = false
+
+[clean]
+cargo = true

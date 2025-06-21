@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Tumbler - Physics Stacking Game</title>
+    <meta name="description" content="A physics-based stacking game with device tilt controls">
+    <link data-trunk rel="rust" data-bin="tower-tumbler" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        
+        canvas {
+            display: block;
+            margin: 0 auto;
+            touch-action: none;
+        }
+        
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 1000;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #333;
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        #permission-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        
+        .modal-content {
+            background: #2a2a2a;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 300px;
+            margin: 1rem;
+        }
+        
+        .modal-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 1rem;
+        }
+        
+        .modal-button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bevy"></canvas>
+    
+    <div id="loading">
+        <div class="loading-spinner"></div>
+        <p>Loading Tower Tumbler...</p>
+    </div>
+    
+    <div id="permission-modal" class="hidden">
+        <div class="modal-content">
+            <h3>Device Motion Permission</h3>
+            <p>This game uses device tilt for controls. Please grant permission to access device motion sensors.</p>
+            <button id="grant-permission" class="modal-button">Grant Permission</button>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize device motion permission handling
+        window.addEventListener('load', function() {
+            const loadingEl = document.getElementById('loading');
+            const permissionModal = document.getElementById('permission-modal');
+            const grantButton = document.getElementById('grant-permission');
+            
+            // Check if device motion permission is needed (iOS 13+)
+            if (typeof DeviceOrientationEvent !== 'undefined' && 
+                typeof DeviceOrientationEvent.requestPermission === 'function') {
+                
+                loadingEl.classList.add('hidden');
+                permissionModal.classList.remove('hidden');
+                
+                grantButton.addEventListener('click', function() {
+                    DeviceOrientationEvent.requestPermission()
+                        .then(function(response) {
+                            if (response === 'granted') {
+                                permissionModal.classList.add('hidden');
+                                loadingEl.classList.remove('hidden');
+                            } else {
+                                alert('Device motion permission denied. You can still play with keyboard controls.');
+                                permissionModal.classList.add('hidden');
+                                loadingEl.classList.remove('hidden');
+                            }
+                        })
+                        .catch(function(error) {
+                            console.error('Error requesting device motion permission:', error);
+                            permissionModal.classList.add('hidden');
+                            loadingEl.classList.remove('hidden');
+                        });
+                });
+            }
+        });
+        
+        // Hide loading screen when WASM is ready
+        window.addEventListener('wasmLoaded', function() {
+            document.getElementById('loading').classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
