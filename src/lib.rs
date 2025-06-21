@@ -13,6 +13,7 @@ impl Plugin for TowerTumblerPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GameState>()
             .init_resource::<input::TiltInput>()
+            .init_resource::<input::JsRustBridge>()
             .add_plugins(physics::PhysicsPlugin)
             .add_systems(Startup, setup_game)
             .add_systems(
@@ -21,6 +22,7 @@ impl Plugin for TowerTumblerPlugin {
                     handle_game_input,
                     update_game_state,
                     input::handle_keyboard_input,
+                    input::process_bridge_events,
                 )
                     .run_if(in_state(GameState::Playing)),
             );

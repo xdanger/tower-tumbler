@@ -3223,6 +3223,7 @@ dependencies = [
  "getrandom 0.3.3",
  "husky-rs",
  "js-sys",
+ "lazy_static",
  "rand 0.9.1",
  "serde",
  "serde_json",

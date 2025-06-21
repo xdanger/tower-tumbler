@@ -108,37 +108,177 @@
     </div>
     
     <script>
-        // Initialize device motion permission handling
+        // JS-Rust Bridge for Tower Tumbler
+        class TowerTumblerBridge {
+            constructor() {
+                this.wasmModule = null;
+                this.permissionStatus = {
+                    granted: false,
+                    requested: false,
+                    available: false
+                };
+                this.lastEventTime = 0;
+                this.eventThrottleMs = 16; // ~60Hz throttling
+                
+                this.init();
+            }
+            
+            init() {
+                this.checkPermissionSupport();
+                this.setupEventListeners();
+            }
+            
+            checkPermissionSupport() {
+                this.permissionStatus.available = 
+                    typeof DeviceOrientationEvent !== 'undefined' && 
+                    typeof DeviceOrientationEvent.requestPermission === 'function';
+                
+                console.log('Device orientation support:', {
+                    available: this.permissionStatus.available,
+                    DeviceOrientationEvent: typeof DeviceOrientationEvent !== 'undefined'
+                });
+            }
+            
+            setupEventListeners() {
+                // Device orientation event listener
+                window.addEventListener('deviceorientation', (event) => {
+                    this.handleDeviceOrientation(event);
+                });
+                
+                // WASM loaded event
+                window.addEventListener('wasmLoaded', () => {
+                    this.onWasmLoaded();
+                });
+                
+                // Error handling
+                window.addEventListener('error', (event) => {
+                    console.error('Global error:', event.error);
+                });
+            }
+            
+            handleDeviceOrientation(event) {
+                const now = Date.now();
+                
+                // Throttle events to ~60Hz
+                if (now - this.lastEventTime < this.eventThrottleMs) {
+                    return;
+                }
+                this.lastEventTime = now;
+                
+                // Validate event data
+                const alpha = this.sanitizeAngle(event.alpha);
+                const beta = this.sanitizeAngle(event.beta);
+                const gamma = this.sanitizeAngle(event.gamma);
+                
+                // Only process if we have valid data and permission
+                if (this.permissionStatus.granted && 
+                    typeof beta === 'number' && !isNaN(beta)) {
+                    
+                    this.sendToRust('deviceOrientation', {
+                        alpha: alpha || 0,
+                        beta: beta || 0,
+                        gamma: gamma || 0,
+                        timestamp: now
+                    });
+                }
+            }
+            
+            sanitizeAngle(angle) {
+                if (typeof angle !== 'number' || isNaN(angle)) {
+                    return 0;
+                }
+                // Clamp to reasonable range
+                return Math.max(-180, Math.min(180, angle));
+            }
+            
+            sendToRust(eventType, data) {
+                if (!this.wasmModule) return;
+                
+                try {
+                    switch (eventType) {
+                        case 'deviceOrientation':
+                            this.wasmModule.js_push_device_orientation(
+                                data.alpha, data.beta, data.gamma, data.timestamp
+                            );
+                            break;
+                        case 'permissionStatus':
+                            this.wasmModule.js_set_permission_status(
+                                data.granted, data.requested, data.available
+                            );
+                            break;
+                    }
+                } catch (error) {
+                    console.error('Error sending to Rust:', error);
+                }
+            }
+            
+            async requestPermission() {
+                if (!this.permissionStatus.available) {
+                    // For non-iOS devices, assume permission is granted
+                    this.permissionStatus.granted = true;
+                    this.updatePermissionStatus();
+                    return 'granted';
+                }
+                
+                this.permissionStatus.requested = true;
+                
+                try {
+                    const response = await DeviceOrientationEvent.requestPermission();
+                    this.permissionStatus.granted = response === 'granted';
+                    this.updatePermissionStatus();
+                    return response;
+                } catch (error) {
+                    console.error('Error requesting permission:', error);
+                    this.updatePermissionStatus();
+                    return 'denied';
+                }
+            }
+            
+            updatePermissionStatus() {
+                this.sendToRust('permissionStatus', this.permissionStatus);
+                console.log('Permission status updated:', this.permissionStatus);
+            }
+            
+            onWasmLoaded() {
+                // Get WASM module instance
+                this.wasmModule = window.wasm_bindgen || window.__wasm_bindgen_exports;
+                
+                // Initial permission status sync
+                this.updatePermissionStatus();
+                
+                console.log('WASM bridge initialized');
+            }
+        }
+        
+        // Initialize bridge
+        const bridge = new TowerTumblerBridge();
+        
+        // Initialize UI handling
         window.addEventListener('load', function() {
             const loadingEl = document.getElementById('loading');
             const permissionModal = document.getElementById('permission-modal');
             const grantButton = document.getElementById('grant-permission');
             
-            // Check if device motion permission is needed (iOS 13+)
-            if (typeof DeviceOrientationEvent !== 'undefined' && 
-                typeof DeviceOrientationEvent.requestPermission === 'function') {
-                
+            // Show permission modal if needed
+            if (bridge.permissionStatus.available) {
                 loadingEl.classList.add('hidden');
                 permissionModal.classList.remove('hidden');
                 
-                grantButton.addEventListener('click', function() {
-                    DeviceOrientationEvent.requestPermission()
-                        .then(function(response) {
-                            if (response === 'granted') {
-                                permissionModal.classList.add('hidden');
-                                loadingEl.classList.remove('hidden');
-                            } else {
-                                alert('Device motion permission denied. You can still play with keyboard controls.');
-                                permissionModal.classList.add('hidden');
-                                loadingEl.classList.remove('hidden');
-                            }
-                        })
-                        .catch(function(error) {
-                            console.error('Error requesting device motion permission:', error);
-                            permissionModal.classList.add('hidden');
-                            loadingEl.classList.remove('hidden');
-                        });
+                grantButton.addEventListener('click', async function() {
+                    const response = await bridge.requestPermission();
+                    
+                    if (response === 'granted') {
+                        permissionModal.classList.add('hidden');
+                        loadingEl.classList.remove('hidden');
+                    } else {
+                        alert('Device motion permission denied. You can still play with keyboard controls.');
+                        permissionModal.classList.add('hidden');
+                        loadingEl.classList.remove('hidden');
+                    }
                 });
+            } else {
+                // For non-iOS devices, grant permission automatically
+                bridge.requestPermission();
             }
         });
         

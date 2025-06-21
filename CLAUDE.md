@@ -37,7 +37,12 @@
 - ⌛️ 20 [#7](https://github.com/xdanger/tower-tumbler/issues/7)：映射 β 角度到 Rapier 重力 (映射部分)
 - ⌛️ 21 [#16](https://github.com/xdanger/tower-tumbler/issues/16)：Web profiler 控制台统计
 
-## 🎯 AI 开发行为要求
+## 📝 开发过程
+
+- **linter**: `cargo clippy --all-targets --all-features -- -D warnings`
+- **formatter**: `cargo fmt`
+
+## 🎯 开发行为要求
 
 ### 主动沟通
 
