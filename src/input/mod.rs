@@ -1,5 +1,5 @@
-pub mod tilt;
 pub mod keyboard;
+pub mod tilt;
 
-pub use tilt::*;
 pub use keyboard::*;
+pub use tilt::*;

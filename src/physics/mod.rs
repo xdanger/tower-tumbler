@@ -1,5 +1,5 @@
-pub mod world;
 pub mod bodies;
+pub mod world;
 
-pub use world::*;
 pub use bodies::*;
+pub use world::*;

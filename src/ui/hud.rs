@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::GameScore;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct ScoreText;
@@ -24,10 +24,7 @@ pub fn setup_hud(mut commands: Commands) {
     ));
 }
 
-pub fn update_score_display(
-    score: Res<GameScore>,
-    mut query: Query<&mut Text, With<ScoreText>>,
-) {
+pub fn update_score_display(score: Res<GameScore>, mut query: Query<&mut Text, With<ScoreText>>) {
     if score.is_changed() {
         for mut text in query.iter_mut() {
             text.sections[0].value = format!("Score: {}", score.current);

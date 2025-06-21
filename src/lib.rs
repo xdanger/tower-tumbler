@@ -11,16 +11,19 @@ pub struct TowerTumblerPlugin;
 
 impl Plugin for TowerTumblerPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_state::<GameState>()
+        app.init_state::<GameState>()
             .init_resource::<input::TiltInput>()
             .add_plugins(physics::PhysicsPlugin)
             .add_systems(Startup, setup_game)
-            .add_systems(Update, (
-                handle_game_input,
-                update_game_state,
-                input::handle_keyboard_input,
-            ).run_if(in_state(GameState::Playing)));
+            .add_systems(
+                Update,
+                (
+                    handle_game_input,
+                    update_game_state,
+                    input::handle_keyboard_input,
+                )
+                    .run_if(in_state(GameState::Playing)),
+            );
     }
 }
 
@@ -43,30 +46,27 @@ pub struct GameScore {
 
 fn setup_game(mut commands: Commands) {
     // Initialize game camera
-    commands.spawn((
-        Camera2dBundle::default(),
-        GameCamera,
-    ));
-    
+    commands.spawn((Camera2dBundle::default(), GameCamera));
+
     // Initialize game score
     commands.insert_resource(GameScore::default());
-    
+
     // Trigger WASM loaded event
     #[cfg(target_arch = "wasm32")]
     {
         use wasm_bindgen::prelude::*;
-        
+
         #[wasm_bindgen]
         extern "C" {
             #[wasm_bindgen(js_namespace = window)]
             fn dispatchEvent(event: &web_sys::Event);
         }
-        
+
         let window = web_sys::window().unwrap();
         let event = web_sys::CustomEvent::new("wasmLoaded").unwrap();
         window.dispatch_event(&event).unwrap();
     }
-    
+
     info!("Tower Tumbler initialized successfully");
 }
 

@@ -15,7 +15,7 @@ impl ScoreSystem {
             base_points: 1,
         }
     }
-    
+
     pub fn calculate_score(&self, deviation: f32) -> u32 {
         if deviation <= self.perfect_stack_threshold {
             self.base_points + self.perfect_stack_bonus
