@@ -168,16 +168,13 @@ pub fn process_bridge_events(
     for event in events {
         match event {
             BridgeEvent::DeviceOrientation(data) => {
-                // Update tilt input with device orientation data
-                tilt_input.beta = data.beta;
+                // Update tilt input with full orientation data
+                tilt_input.update_orientation(data.alpha, data.beta, data.gamma, data.timestamp);
                 tilt_input.enabled = bridge.permission_status.granted;
 
                 // Log throttled events (every 60 events ~1 second at 60Hz)
                 if bridge.events_processed % 60 == 0 {
-                    info!(
-                        "Device orientation: beta={:.2}°, enabled={}",
-                        data.beta, tilt_input.enabled
-                    );
+                    info!("Device orientation: {}", tilt_input.get_debug_info());
                 }
             }
             BridgeEvent::PermissionStatusChanged(status) => {

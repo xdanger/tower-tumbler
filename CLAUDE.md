@@ -41,6 +41,7 @@
 
 - **linter**: `cargo clippy --all-targets --all-features -- -D warnings`
 - **formatter**: `cargo fmt`
+- 不要自己 `trunk serve`，而是让我来启动服务器，你只需要能看到服务器的日志输出就行
 
 ## 🎯 开发行为要求
 

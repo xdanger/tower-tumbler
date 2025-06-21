@@ -23,6 +23,9 @@ impl Plugin for TowerTumblerPlugin {
                     update_game_state,
                     input::handle_keyboard_input,
                     input::process_bridge_events,
+                    input::handle_calibration_input,
+                    input::handle_keyboard_tilt_input,
+                    input::handle_virtual_tilt_input,
                 )
                     .run_if(in_state(GameState::Playing)),
             );
